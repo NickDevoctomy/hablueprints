@@ -48,7 +48,7 @@ action:
       - conditions:
           - condition: numeric_state
             entity_id: !input "temp_sensor"
-            below: "{{ states(!input 'min_temp_input') | float }}"
+            below: "{{ states(!input 'min_temp_input') | int }}"
         sequence:
           - service: switch.turn_on
             target:
@@ -56,7 +56,7 @@ action:
       - conditions:
           - condition: numeric_state
             entity_id: !input "temp_sensor"
-            above: "{{ states(!input 'max_temp_input') | float }}"
+            above: "{{ states(!input 'max_temp_input') | int }}"
         sequence:
           - service: switch.turn_off
             target:
