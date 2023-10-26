@@ -46,17 +46,15 @@ condition:
 action:
   - choose:
       - conditions:
-          - condition: numeric_state
-            entity_id: !input "temp_sensor"
-            below: "{{ states(!input 'min_temp_input') | int }}"
+          - condition: template
+            value_template: "{{ states(temp_sensor) | float < states(min_temp_input) | int }}"
         sequence:
           - service: switch.turn_on
             target:
               entity_id: !input "heater_switch"
       - conditions:
-          - condition: numeric_state
-            entity_id: !input "temp_sensor"
-            above: "{{ states(!input 'max_temp_input') | int }}"
+          - condition: template
+            value_template: "{{ states(temp_sensor) | float > states(max_temp_input) | int }}"
         sequence:
           - service: switch.turn_off
             target:
