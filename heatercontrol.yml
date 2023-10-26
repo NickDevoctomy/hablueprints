@@ -1,0 +1,80 @@
+blueprint:
+  name: Temperature-controlled Heater Automation with Time Window
+  description: Turns a heater on or off based on a temperature sensor's readings, within a specified time window and optional enable/disable switch.
+  domain: automation
+  input:
+    heater_switch:
+      name: Heater Switch
+      description: The switch that controls the heater
+      selector:
+        entity:
+          domain: switch
+    temp_sensor:
+      name: Temperature Sensor
+      description: Sensor to monitor the room's temperature
+      selector:
+        entity:
+          domain: sensor
+    min_temp:
+      name: Minimum Temperature
+      description: Turn the heater on when temperature drops below this value
+      default: 18
+      selector:
+        number:
+          min: 0
+          max: 50
+    max_temp:
+      name: Maximum Temperature
+      description: Turn the heater off when temperature exceeds this value
+      default: 22
+      selector:
+        number:
+          min: 0
+          max: 50
+    start_time:
+      name: Start Time
+      description: Start time for the automation
+      selector:
+        time:
+    end_time:
+      name: End Time
+      description: End time for the automation
+      selector:
+        time:
+    enable_switch:
+      name: Enable Switch
+      description: Input boolean to enable or disable the automation
+      selector:
+        entity:
+          domain: input_boolean
+
+trigger:
+  - platform: state
+    entity_id: !input "temp_sensor"
+
+condition:
+  - condition: time
+    after: !input "start_time"
+    before: !input "end_time"
+  - condition: state
+    entity_id: !input "enable_switch"
+    state: 'on'
+
+action:
+  - choose:
+      - conditions:
+          - condition: numeric_state
+            entity_id: !input "temp_sensor"
+            below: !input "min_temp"
+        sequence:
+          - service: switch.turn_on
+            target:
+              entity_id: !input "heater_switch"
+      - conditions:
+          - condition: numeric_state
+            entity_id: !input "temp_sensor"
+            above: !input "max_temp"
+        sequence:
+          - service: switch.turn_off
+            target:
+              entity_id: !input "heater_switch"
