@@ -8,54 +8,63 @@ blueprint:
       description: The switch that controls the heater
       selector:
         entity:
-          domain: switch
+          domain:
+          - switch
+          multiple: false
     temp_sensor:
       name: Temperature Sensor
       description: Sensor to monitor the room's temperature
       selector:
         entity:
-          domain: sensor
+          domain:
+          - sensor
+          multiple: false
     min_temp_input:
       name: Minimum Temperature Input
       description: Input number entity for setting the minimum temperature
       selector:
         entity:
-          domain: input_number
+          domain:
+          - input_number
+          multiple: false
     max_temp_input:
       name: Maximum Temperature Input
       description: Input number entity for setting the maximum temperature
       selector:
         entity:
-          domain: input_number
+          domain:
+          - input_number
+          multiple: false
     enable_switch:
       name: Enable Switch
       description: Input boolean to enable or disable the automation
       selector:
         entity:
-          domain: input_boolean
-
+          domain:
+          - input_boolean
+          multiple: false
 trigger:
-  - platform: state
-    entity_id: !input "temp_sensor"
-
+- platform: state
+  entity_id: !input temp_sensor
 condition:
-  - condition: state
-    entity_id: !input "enable_switch"
-    state: 'on'
-
+- condition: state
+  entity_id: !input enable_switch
+  state: 'on'
 action:
-  - choose:
-      - conditions:
-          - condition: template
-            value_template: "{{ states(temp_sensor) | float < states(min_temp_input) | int }}"
-        sequence:
-          - service: switch.turn_on
-            target:
-              entity_id: !input "heater_switch"
-      - conditions:
-          - condition: template
-            value_template: "{{ states(temp_sensor) | float > states(max_temp_input) | int }}"
-        sequence:
-          - service: switch.turn_off
-            target:
-              entity_id: !input "heater_switch"
+- choose:
+  - conditions:
+    - condition: numeric_state
+      entity_id: !input temp_sensor 
+      below: !input min_temp_input
+    sequence:
+    - service: switch.turn_on
+      target:
+        entity_id: !input heater_switch
+  - conditions:
+    - condition: numeric_state
+      entity_id: !input temp_sensor
+      above: !input max_temp_input
+    sequence:
+    - service: switch.turn_off
+      target:
+        entity_id: !input heater_switch
