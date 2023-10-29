@@ -17,9 +17,13 @@ class HumidityAverage(hass.Hass):
                 'min_humidity': 50,
                 'max_humidity': 60,
                 'dehumidifier_switch': 'dehumidifer_power_switch',
-                'virtual_sensor': 'sensor.average_humidity_zone1'
+                'virtual_sensor': 'sensor.average_humidity_zone1',
+                'defer_time': 5
             },
         }
+
+        # Initialize a dictionary to store timer handles for each zone
+        self.timers = {}
 
         # Listen for changes to any of the defined sensors
         for room, sensors in self.rooms.items():
@@ -38,6 +42,14 @@ class HumidityAverage(hass.Hass):
     def state_changed(self, entity, attribute, old, new, kwargs):
         for zone, config in self.zones.items():
             humidity_values = []
+
+            # Check if a timer and action already exist for this zone
+            if zone in self.timers:
+                existing_timer_handle = self.timers[zone]['handle']
+                existing_action = self.timers[zone]['action']
+            else:
+                existing_timer_handle = None
+                existing_action = None
 
             for room in config['rooms']:
                 sensors = self.rooms[room]
@@ -60,8 +72,38 @@ class HumidityAverage(hass.Hass):
                     "icon": "mdi:water-percent",
                 })
 
-                # Control the dehumidifier
+                # Control the dehumidifier with deferred action
                 if average_humidity < config['min_humidity']:
-                    self.turn_off(config['dehumidifier_switch'])
+                    new_action = "off"
                 elif average_humidity > config['max_humidity']:
-                    self.turn_on(config['dehumidifier_switch'])
+                    new_action = "on"
+                else:
+                    new_action = None
+                
+                # Compare new action with existing action
+                if new_action != existing_action:
+                    # Cancel existing timer if it exists
+                    if existing_timer_handle:
+                        self.cancel_timer(existing_timer_handle)
+
+                    # Schedule a new timer for the new action if required
+                    if new_action:
+                        new_timer_handle = self.run_in(self.deferred_action, config['defer_time'] * 60, zone=zone, action=new_action)
+                        self.timers[zone] = {'handle': new_timer_handle, 'action': new_action}
+                    else:
+                        # Remove timer info for this zone if no action is required
+                        if zone in self.timers:
+                            del self.timers[zone]
+
+    def deferred_action(self, kwargs):
+        zone = kwargs['zone']
+        action = kwargs['action']
+        config = self.zones[zone]
+        
+        if action == "on":
+            self.turn_on(config['dehumidifier_switch'])
+        elif action == "off":
+            self.turn_off(config['dehumidifier_switch'])
+        
+        # Remove the timer handle as it has been executed
+        del self.timers[zone]
