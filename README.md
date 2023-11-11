@@ -26,4 +26,11 @@ This AppDaemon controls define rooms and zones in order to have them automatical
 
 When the average is calculated, all room sensors are evaluated, if the door sensor is null or open, then the humidity value is included in the average, otherwise it is excluded. Dehumidifiers cannot control the humidity of closed rooms, so this prevents the dehumidifer from over working.
 
+#### Known Issues
+
+* May cause load issues if many zones are configured, as a single sensor change currently causes all zones to be recalculated.  Using a single zone will not result in any additional load.
+  - Extract zone reclaulation logic into function
+  - Calculate zone of current sensor being evaluated
+  - Update only that single zone
+
 
