@@ -32,5 +32,6 @@ When the average is calculated, all room sensors are evaluated, if the door sens
   - Extract zone reclaulation logic into function
   - Calculate zone of current sensor being evaluated
   - Update only that single zone
-
+* Zones aren't initially calculated, a single sensor update is required. This should be changed so that each zone is forcefully updated after initialisation.
+  - Will be much easier after zone recalculation logic is functionised as above
 

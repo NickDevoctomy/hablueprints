@@ -19,7 +19,7 @@ class HumidityAverage(hass.Hass):
                 'dehumidifier_switch': 'dehumidifer_power_switch',
                 'virtual_sensor': 'sensor.average_humidity_zone1',
                 'defer_time': 5,
-                'max_runtime': 180
+                'max_runtime': 300
             },
         }
 
