@@ -12,26 +12,25 @@ class HumidityAverage(hass.Hass):
         # Define your zones here
         self.zones = {
             'zone1': {
-                'name' : 'Zone 1',
+                'name': 'Zone 1',
                 'rooms': ['room1', 'room2'],
                 'min_humidity': 50,
                 'max_humidity': 60,
                 'dehumidifier_switch': 'dehumidifer_power_switch',
                 'virtual_sensor': 'sensor.average_humidity_zone1',
-                'defer_time': 5
+                'defer_time': 5,
+                'max_runtime': 180
             },
         }
 
-        # Initialize a dictionary to store timer handles for each zone
         self.timers = {}
+        self.start_times = {}
 
-        # Listen for changes to any of the defined sensors
         for room, sensors in self.rooms.items():
             self.listen_state(self.state_changed, sensors['humidity'])
             if sensors['door']:
                 self.listen_state(self.state_changed, sensors['door'])
 
-        # Initialize virtual sensors
         for zone, config in self.zones.items():
             self.set_state(config['virtual_sensor'], state="unknown", attributes={
                 "unit_of_measurement": "%",
@@ -72,6 +71,14 @@ class HumidityAverage(hass.Hass):
                     "icon": "mdi:water-percent",
                 })
 
+                # Force the dehumidifer off if it's been running for longer than max_runtime
+                if zone in self.start_times:
+                    elapsed_time = (self.datetime() - self.start_times[zone]).seconds / 60
+                    if elapsed_time > config['max_runtime']:
+                        self.force_off(zone, config)
+                        del self.timers[zone]
+                        return
+
                 # Control the dehumidifier with deferred action
                 if average_humidity < config['min_humidity']:
                     new_action = "off"
@@ -79,7 +86,7 @@ class HumidityAverage(hass.Hass):
                     new_action = "on"
                 else:
                     new_action = None
-                
+
                 # Compare new action with existing action
                 if new_action != existing_action:
                     # Cancel existing timer if it exists
@@ -99,11 +106,17 @@ class HumidityAverage(hass.Hass):
         zone = kwargs['zone']
         action = kwargs['action']
         config = self.zones[zone]
-        
+
         if action == "on":
             self.turn_on(config['dehumidifier_switch'])
+            self.start_times[zone] = self.datetime()
         elif action == "off":
-            self.turn_off(config['dehumidifier_switch'])
-        
+            self.force_off(zone, config)
+
         # Remove the timer handle as it has been executed
         del self.timers[zone]
+
+    def force_off(self, zone, config):
+        self.turn_off(config['dehumidifier_switch'])
+        if zone in self.start_times:
+            del self.start_times[zone]
