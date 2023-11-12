@@ -35,3 +35,13 @@ When the average is calculated, all room sensors are evaluated, if the door sens
 * Zones aren't initially calculated, a single sensor update is required. This should be changed so that each zone is forcefully updated after initialisation.
   - Will be much easier after zone recalculation logic is functionised as above
 
+
+### mold_index.py
+
+This AppDaemon defines a set of zones which consist of a single humidity and temperature sensor.  These do not have to be isolated rooms. Then using the previous 1 hours worth of data, a mold index is created that gives a theoretical change of mold growth.
+
+* Zone - A zone consists of a collection of rooms and a dehumidifier.
+    * name - Name for this zone, differs from key in that it is used in the friendly name for the sensor.
+    * humidity_sensor - Humidity sensor entity name to use for this zone
+    * temperature_sensor - Temperature sensor entity name to use for this zone
+    * virtual_sensor - Name of the virtual sensor to create which will store the mold index for this zone
