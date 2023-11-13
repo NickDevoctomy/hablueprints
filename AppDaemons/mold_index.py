@@ -2,6 +2,7 @@ import appdaemon.plugins.hass.hassapi as hass
 import datetime
 import io
 import csv
+import math
 
 class MoldIndex(hass.Hass):
         
@@ -20,7 +21,7 @@ class MoldIndex(hass.Hass):
             self.set_state(config['virtual_sensor'], state=0, attributes={
                 "unit_of_measurement": "%",
                 "friendly_name": f"{config['name']} Mold Index",
-                #"icon": "mdi:water-percent",
+                "icon": "mdi:water-percent-alert"
             })
 
             self.calculate_mold_index({'zone_name':zone})
@@ -44,7 +45,7 @@ class MoldIndex(hass.Hass):
         self.set_state(config['virtual_sensor'], state=mold_index, attributes={
             "unit_of_measurement": "%",
             "friendly_name": f"{config['name']} Mold Index",
-            #"icon": "mdi:water-percent",
+            "icon": "mdi:water-percent-alert"
         })
         # queue next update in 1 hour
         self.run_in(self.calculate_mold_index, 3600, zone_name=zone_name)
@@ -73,21 +74,24 @@ class MoldIndex(hass.Hass):
         except ValueError:
             return False
         
+    def sigmoid(self, x: float) -> float:
+        return 1 / (1 + math.exp(-x))
+    
     def mold_growth_index(self, temperature: float, humidity: float) -> int:
         # Define temperature and humidity thresholds for mold growth
-        temp_threshold = 20  # Typical lower threshold for significant mold growth
-        humidity_threshold = 60  # Typical lower threshold for significant mold growth
-
-        # Calculate the temperature factor as a value between 0 and 1
-        temp_factor = max(0, min((temperature - temp_threshold) / (30 - temp_threshold), 1))
-        
-        # Calculate the humidity factor as a value between 0 and 1
-        humidity_factor = max(0, min((humidity - humidity_threshold) / (100 - humidity_threshold), 1))
-
+        temp_optimal = 25  # Optimal temperature for mold growth
+        humidity_optimal = 70  # Optimal humidity for mold growth
+    
+        # Calculate the temperature factor with a sigmoid function
+        temp_factor = self.sigmoid((temperature - temp_optimal) / 5)  # 5 is a chosen scaling factor to adjust the steepness
+    
+        # Calculate the humidity factor with a sigmoid function
+        humidity_factor = self.sigmoid((humidity - humidity_optimal) / 10)  # 10 is a chosen scaling factor to adjust the steepness
+    
         # Calculate the combined mold growth index
         mold_index = temp_factor * humidity_factor * 100
-
+    
         # Ensure the mold index is within the bounds 0-100
         mold_index = max(0, min(100, int(mold_index)))
-
+    
         return mold_index
